@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "codex-quota"
+version = "1.0.0"
+description = "Multi-profile Codex CLI quota monitor with CLI and TUI"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "ssh-den"}]
+dependencies = [
+  "typer>=0.12.5",
+  "rich>=13.7.1",
+  "textual>=3.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2",
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "pylint>=3.2",
+]
+
+[project.scripts]
+codex-quota = "codex_quota.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/codex_quota"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = ["src"]
+files = ["src", "tests"]
+pretty = true
+
+[tool.pylint.main]
+py-version = "3.11"
+source-roots = ["src"]
+
+[tool.pylint."messages control"]
+disable = [
+  "missing-module-docstring",
+  "missing-function-docstring",
+  "missing-class-docstring",
+  "too-few-public-methods",
+]
