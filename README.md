@@ -31,7 +31,13 @@ Tested with `codex-cli 0.136.0`.
 
 ## Installation
 
-> PyPI package coming soon. For now, clone the repository and install manually:
+Install from PyPI:
+
+```bash
+pip install codex-quota
+```
+
+Install from source:
 
 ```bash
 git clone https://github.com/ssh-den/codex-quota.git
@@ -342,8 +348,6 @@ Then performs the following JSON-RPC sequence:
 ```
 
 Responses are normalized for display and safe JSON output. Raw API values are available only through explicit `--json-raw`.
-
----
 
 ## License
 
