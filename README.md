@@ -61,6 +61,9 @@ codex-quota profile add personal --login
 # Check quota status
 codex-quota status
 
+# Force an auth keepalive refresh for CI or cron
+codex-quota wake
+
 # Launch the live terminal dashboard
 codex-quota tui
 ```
@@ -297,6 +300,24 @@ Exit codes:
 |------|---------|
 | 0 | Selected profiles are authenticated, readable, and not quota-blocked |
 | 2 | Codex missing, auth missing/expired, app-server failure, quota block, or no selected profiles found |
+
+---
+
+## Wake command
+
+Force the official auth keepalive even when the last successful refresh is still recent:
+
+```bash
+codex-quota wake
+```
+
+Single profile:
+
+```bash
+codex-quota wake personal
+```
+
+This is mainly useful for scheduled CI or cron jobs that want to keep managed auth warm proactively. `wake` follows the same `login_status() -> account/read(refreshToken=true) -> account/rateLimits/read` pipeline as `check`, prints the same human-readable table, and exits with the same codes.
 
 ---
 

@@ -2,4 +2,4 @@
 
 """codex-quota: isolated Codex CLI profile management and quota monitoring."""
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"

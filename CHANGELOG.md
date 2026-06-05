@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 - 2026-06-05
+
+### Added
+
+- Optional `wake` command for scheduled CI or cron keepalive runs that force an auth refresh before quota reads.
+
 ## 1.1.0 - 2026-06-05
 
 ### Added

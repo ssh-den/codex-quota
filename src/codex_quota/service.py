@@ -51,9 +51,10 @@ def refresh_auth_if_needed(
     account_reader: AccountReader = read_account,
     config_persister: ConfigPersister = _persist_config,
     now: datetime | None = None,
+    force: bool = False,
 ) -> tuple[AppConfig, str | None, str | None]:
     current_time = now or datetime.now(UTC)
-    if not auth_refresh_due(config, profile.name, now=current_time):
+    if not force and not auth_refresh_due(config, profile.name, now=current_time):
         return config, None, None
 
     try:
@@ -81,6 +82,7 @@ def collect_statuses(  # pylint: disable=too-many-arguments,too-many-locals
     account_reader: AccountReader = read_account,
     config_persister: ConfigPersister = _persist_config,
     now: datetime | None = None,
+    force_auth_refresh: bool = False,
 ) -> list[ProfileStatus]:
     selected = (
         list(profiles)
@@ -114,6 +116,7 @@ def collect_statuses(  # pylint: disable=too-many-arguments,too-many-locals
                 account_reader=account_reader,
                 config_persister=config_persister,
                 now=now,
+                force=force_auth_refresh,
             )
             if status == AUTH_REQUIRED:
                 statuses.append(

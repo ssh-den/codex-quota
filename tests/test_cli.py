@@ -392,3 +392,40 @@ def test_status_human_output_shows_auth_required(monkeypatch, tmp_path: Path) ->
     assert "AUTH_REQUIRE" in result.stdout
     assert "D" in result.stdout
     assert "token_invalidated" not in result.stdout
+
+
+def test_wake_forces_auth_refresh(monkeypatch, tmp_path: Path) -> None:
+    profile = Profile(name="personal", codex_home=tmp_path / "profiles" / "personal")
+    statuses = [
+        ProfileStatus(
+            profile=profile,
+            rate_limits=RateLimits(
+                primary=None,
+                secondary=None,
+                plan_type="pro",
+                rate_limit_reached_type=None,
+                credits={},
+                raw={},
+            ),
+            auth_ok=True,
+            codex_ok=True,
+        )
+    ]
+    calls: list[tuple[str | None, bool]] = []
+
+    def fake_collect_statuses(
+        _config,
+        profile_name: str | None = None,
+        *,
+        force_auth_refresh: bool = False,
+    ) -> list[ProfileStatus]:
+        calls.append((profile_name, force_auth_refresh))
+        return statuses
+
+    monkeypatch.setattr("codex_quota.cli.collect_statuses", fake_collect_statuses)
+    monkeypatch.setattr("codex_quota.cli._config", object)
+
+    result = runner.invoke(app, ["wake", "personal"])
+
+    assert result.exit_code == 0
+    assert calls == [("personal", True)]

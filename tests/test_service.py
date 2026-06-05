@@ -138,6 +138,32 @@ def test_refresh_runs_when_last_refresh_is_four_hours_old(tmp_path: Path) -> Non
     assert calls == [True]
 
 
+def test_refresh_can_be_forced_when_last_refresh_is_recent(tmp_path: Path) -> None:
+    cfg = AppConfig(
+        profiles_dir=tmp_path / "profiles",
+        extra={"auth_refresh": {"personal": "2026-06-05T08:30:00Z"}},
+    )
+    profile = add_profile(cfg, "personal")
+    calls: list[bool] = []
+
+    def reader(*_args, **_kwargs) -> AccountInfo:
+        calls.append(True)
+        return AccountInfo(
+            account={"type": "chatgpt"}, requires_openai_auth=True, raw={}
+        )
+
+    refresh_auth_if_needed(
+        cfg,
+        profile,
+        account_reader=reader,
+        config_persister=lambda current, _name, _ts: current,
+        now=datetime(2026, 6, 5, 12, 0, tzinfo=UTC),
+        force=True,
+    )
+
+    assert calls == [True]
+
+
 def test_successful_refresh_updates_timestamp(tmp_path: Path) -> None:
     cfg = AppConfig(profiles_dir=tmp_path / "profiles")
     profile = add_profile(cfg, "personal")

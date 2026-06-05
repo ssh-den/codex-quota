@@ -290,6 +290,24 @@ def check(
         raise typer.Exit(2) from exc
 
 
+@app.command()
+def wake(
+    profile_name: Annotated[
+        str | None, typer.Argument(help="Optional profile name")
+    ] = None,
+) -> None:
+    """Force an auth keepalive refresh before reading quota status."""
+    try:
+        statuses = collect_statuses(
+            _config(), profile_name, force_auth_refresh=True
+        )
+        console.print(render_status_table(statuses))
+        raise typer.Exit(2 if check_failed(statuses) else 0)
+    except CodexUsageError as exc:
+        _print_error(exc)
+        raise typer.Exit(2) from exc
+
+
 @app.command("exec")
 def exec_prompt(
     profile_name: Annotated[str, typer.Argument(help="Profile name")],
