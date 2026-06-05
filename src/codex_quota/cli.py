@@ -13,13 +13,21 @@ from .config import ensure_config, load_config
 from .errors import CodexUsageError, ProfileNotFoundError
 from .models import AppConfig, ProfileStatus
 from .paths import default_paths
-from .profiles import add_profile, discover_profiles, ensure_profiles_dir, get_profile, profile_path
+from .profiles import (
+    add_profile,
+    discover_profiles,
+    ensure_profiles_dir,
+    get_profile,
+    profile_path,
+)
 from .profiles import remove_profile as remove_profile_dir
 from .render import render_profile_table, render_status_table
 from .service import check_failed, collect_statuses
 from .tui import run_fullscreen_tui
 
-app = typer.Typer(no_args_is_help=True, help="Manage Codex CLI profiles and quota usage.")
+app = typer.Typer(
+    no_args_is_help=True, help="Manage Codex CLI profiles and quota usage."
+)
 profile_app = typer.Typer(no_args_is_help=True, help="Manage isolated Codex profiles.")
 app.add_typer(profile_app, name="profile")
 console = Console()
@@ -45,11 +53,11 @@ def _window_payload(window: Any) -> dict[str, Any] | None:
 
 
 def _rate_limits_payload(
-    status: ProfileStatus,
+    item: ProfileStatus,
     *,
     include_raw: bool = False,
 ) -> dict[str, Any] | None:
-    limits = status.rate_limits
+    limits = item.rate_limits
     if limits is None:
         return None
 
@@ -75,6 +83,7 @@ def _status_payload(
     return [
         {
             "profile": item.profile.name,
+            "status": item.status,
             "auth_ok": item.auth_ok,
             "codex_ok": item.codex_ok,
             "ok": item.ok,
@@ -153,7 +162,9 @@ def profile_add(
         console.print(str(profile.codex_home))
 
         if run_login:
-            raise typer.Exit(codex_login(profile, config.codex_bin, device_auth=device_auth))
+            raise typer.Exit(
+                codex_login(profile, config.codex_bin, device_auth=device_auth)
+            )
     except CodexUsageError as exc:
         _print_error(exc)
         raise typer.Exit(2) from exc
@@ -173,7 +184,9 @@ def profile_remove(
             console.print("[yellow]Warning: auth.json exists in this profile.[/yellow]")
 
         if not yes:
-            confirmed = typer.confirm(f"Delete profile '{name}' at {profile.codex_home}?")
+            confirmed = typer.confirm(
+                f"Delete profile '{name}' at {profile.codex_home}?"
+            )
             if not confirmed:
                 raise typer.Exit(1)
 
@@ -211,7 +224,9 @@ def login(
             if create
             else get_profile(config, profile_name)
         )
-        raise typer.Exit(codex_login(profile, config.codex_bin, device_auth=device_auth))
+        raise typer.Exit(
+            codex_login(profile, config.codex_bin, device_auth=device_auth)
+        )
     except CodexUsageError as exc:
         _print_error(exc)
         raise typer.Exit(2) from exc
@@ -219,15 +234,23 @@ def login(
 
 @app.command()
 def status(
-    profile_name: Annotated[str | None, typer.Argument(help="Optional profile name")] = None,
-    json_out: Annotated[bool, typer.Option("--json", help="Print machine-readable JSON.")] = False,
+    profile_name: Annotated[
+        str | None, typer.Argument(help="Optional profile name")
+    ] = None,
+    json_out: Annotated[
+        bool, typer.Option("--json", help="Print machine-readable JSON.")
+    ] = False,
     json_paths: Annotated[
         bool,
-        typer.Option("--json-paths", help="Include absolute profile paths in JSON output."),
+        typer.Option(
+            "--json-paths", help="Include absolute profile paths in JSON output."
+        ),
     ] = False,
     json_raw: Annotated[
         bool,
-        typer.Option("--json-raw", help="Include raw rate-limit payload in JSON output."),
+        typer.Option(
+            "--json-raw", help="Include raw rate-limit payload in JSON output."
+        ),
     ] = False,
 ) -> None:
     """Read quota status for one or all discovered profiles."""
@@ -235,7 +258,11 @@ def status(
         statuses = collect_statuses(_config(), profile_name)
         if json_out:
             console.print_json(
-                json.dumps(_status_payload(statuses, include_path=json_paths, include_raw=json_raw))
+                json.dumps(
+                    _status_payload(
+                        statuses, include_path=json_paths, include_raw=json_raw
+                    )
+                )
             )
         else:
             console.print(render_status_table(statuses))
@@ -249,7 +276,9 @@ def status(
 
 @app.command()
 def check(
-    profile_name: Annotated[str | None, typer.Argument(help="Optional profile name")] = None,
+    profile_name: Annotated[
+        str | None, typer.Argument(help="Optional profile name")
+    ] = None,
 ) -> None:
     """Exit non-zero if any selected profile has auth, quota, or Codex problems."""
     try:
@@ -265,12 +294,16 @@ def check(
 def exec_prompt(
     profile_name: Annotated[str, typer.Argument(help="Profile name")],
     prompt: Annotated[str, typer.Argument(help="Prompt to send")],
-    raw: Annotated[bool, typer.Option("--raw", help="Do not force Codex JSON output.")] = False,
+    raw: Annotated[
+        bool, typer.Option("--raw", help="Do not force Codex JSON output.")
+    ] = False,
 ) -> None:
     """Run official codex exec under a selected CODEX_HOME."""
     try:
         config = _config()
-        proc = simple_exec(get_profile(config, profile_name), prompt, config, json_output=not raw)
+        proc = simple_exec(
+            get_profile(config, profile_name), prompt, config, json_output=not raw
+        )
 
         if proc.stdout:
             console.print(proc.stdout.rstrip())
@@ -284,7 +317,9 @@ def exec_prompt(
 
 
 @app.command()
-def tui(refresh: Annotated[float | None, typer.Option("--refresh", "-r")] = None) -> None:
+def tui(
+    refresh: Annotated[float | None, typer.Option("--refresh", "-r")] = None,
+) -> None:
     """Open a Textual live quota view."""
     try:
         config = _config()

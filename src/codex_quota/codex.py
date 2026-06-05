@@ -54,14 +54,18 @@ def run_codex(
 def codex_version(codex_bin: str = "codex") -> str:
     proc = run_codex(["--version"], codex_bin=codex_bin, timeout=10)
     if proc.returncode != 0:
-        raise CodexCommandError(proc.stderr.strip() or "Failed to read Codex CLI version")
+        raise CodexCommandError(
+            proc.stderr.strip() or "Failed to read Codex CLI version"
+        )
     return proc.stdout.strip() or proc.stderr.strip() or "unknown"
 
 
 def login_status(profile: Profile, codex_bin: str = "codex") -> bool:
     if not profile.auth_file.is_file():
         return False
-    proc = run_codex(["login", "status"], profile=profile, codex_bin=codex_bin, timeout=20)
+    proc = run_codex(
+        ["login", "status"], profile=profile, codex_bin=codex_bin, timeout=20
+    )
     output = f"{proc.stdout}\n{proc.stderr}".lower()
     return proc.returncode == 0 and ("logged in" in output or "authenticated" in output)
 

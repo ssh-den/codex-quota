@@ -14,7 +14,9 @@ def test_login_uses_device_auth_when_requested(monkeypatch, tmp_path: Path) -> N
     profile = Profile(name="personal", codex_home=tmp_path / "personal")
     calls: list[tuple[list[str], dict[str, str]]] = []
 
-    monkeypatch.setattr("codex_quota.codex.find_codex", lambda _codex_bin: "/usr/bin/codex")
+    monkeypatch.setattr(
+        "codex_quota.codex.find_codex", lambda _codex_bin: "/usr/bin/codex"
+    )
 
     def fake_call(args: list[str], *, env: dict[str, str]) -> int:
         calls.append((args, env))
@@ -36,7 +38,9 @@ def test_login_omits_device_auth_by_default(monkeypatch, tmp_path: Path) -> None
     profile = Profile(name="personal", codex_home=tmp_path / "personal")
     calls: list[list[str]] = []
 
-    monkeypatch.setattr("codex_quota.codex.find_codex", lambda _codex_bin: "/usr/bin/codex")
+    monkeypatch.setattr(
+        "codex_quota.codex.find_codex", lambda _codex_bin: "/usr/bin/codex"
+    )
 
     def fake_call(args: list[str], *, env: dict[str, str]) -> int:
         _ = env
@@ -51,7 +55,9 @@ def test_login_omits_device_auth_by_default(monkeypatch, tmp_path: Path) -> None
     assert calls == [["/usr/bin/codex", "login"]]
 
 
-def test_simple_exec_respects_user_config_and_rules(monkeypatch, tmp_path: Path) -> None:
+def test_simple_exec_respects_user_config_and_rules(
+    monkeypatch, tmp_path: Path
+) -> None:
     profile = Profile(name="personal", codex_home=tmp_path / "personal")
     config = AppConfig(profiles_dir=tmp_path / "profiles")
     captured: dict[str, object] = {}

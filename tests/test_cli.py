@@ -30,7 +30,9 @@ def test_init_creates_config_and_profile_root(tmp_path: Path, monkeypatch) -> No
         assert stat.S_IMODE((tmp_path / "profiles").stat().st_mode) == PRIVATE_DIR_MODE
 
 
-def test_init_preserves_existing_config_without_overwrite(tmp_path: Path, monkeypatch) -> None:
+def test_init_preserves_existing_config_without_overwrite(
+    tmp_path: Path, monkeypatch
+) -> None:
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     config_file = config_dir / "config.json"
@@ -63,7 +65,9 @@ def test_init_preserves_existing_config_without_overwrite(tmp_path: Path, monkey
     assert data["profiles"] == {"legacy": {"codex_home": "/tmp/legacy"}}
 
 
-def test_init_overwrite_config_recreates_minimal_config(tmp_path: Path, monkeypatch) -> None:
+def test_init_overwrite_config_recreates_minimal_config(
+    tmp_path: Path, monkeypatch
+) -> None:
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     config_file = config_dir / "config.json"
@@ -101,7 +105,10 @@ def test_profile_add_creates_profile_dir(tmp_path: Path, monkeypatch) -> None:
     assert result.exit_code == 0
     assert (tmp_path / "profiles" / "personal").is_dir()
     if os.name == "posix":
-        assert stat.S_IMODE((tmp_path / "profiles" / "personal").stat().st_mode) == PRIVATE_DIR_MODE
+        assert (
+            stat.S_IMODE((tmp_path / "profiles" / "personal").stat().st_mode)
+            == PRIVATE_DIR_MODE
+        )
 
 
 def test_profile_path_prints_codex_home(tmp_path: Path, monkeypatch) -> None:
@@ -116,7 +123,9 @@ def test_profile_path_prints_codex_home(tmp_path: Path, monkeypatch) -> None:
     assert result.stdout.strip() == str((tmp_path / "profiles" / "personal").resolve())
 
 
-def test_profile_remove_without_confirmation_keeps_profile(tmp_path: Path, monkeypatch) -> None:
+def test_profile_remove_without_confirmation_keeps_profile(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("CODEX_QUOTA_CONFIG_DIR", str(tmp_path / "config"))
     monkeypatch.setenv("CODEX_QUOTA_PROFILES_DIR", str(tmp_path / "profiles"))
 
@@ -140,7 +149,9 @@ def test_profile_remove_yes_deletes_profile(tmp_path: Path, monkeypatch) -> None
     assert not (tmp_path / "profiles" / "personal").exists()
 
 
-def test_profile_remove_warns_when_auth_json_exists(tmp_path: Path, monkeypatch) -> None:
+def test_profile_remove_warns_when_auth_json_exists(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("CODEX_QUOTA_CONFIG_DIR", str(tmp_path / "config"))
     monkeypatch.setenv("CODEX_QUOTA_PROFILES_DIR", str(tmp_path / "profiles"))
 
@@ -167,13 +178,17 @@ def test_profile_add_login_passes_device_auth(tmp_path: Path, monkeypatch) -> No
 
     monkeypatch.setattr("codex_quota.cli.codex_login", fake_login)
 
-    result = runner.invoke(app, ["profile", "add", "personal", "--login", "--device-auth"])
+    result = runner.invoke(
+        app, ["profile", "add", "personal", "--login", "--device-auth"]
+    )
 
     assert result.exit_code == 0
     assert calls == [("personal", "codex", True)]
 
 
-def test_profile_add_rejects_device_auth_without_login(tmp_path: Path, monkeypatch) -> None:
+def test_profile_add_rejects_device_auth_without_login(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("CODEX_QUOTA_CONFIG_DIR", str(tmp_path / "config"))
     monkeypatch.setenv("CODEX_QUOTA_PROFILES_DIR", str(tmp_path / "profiles"))
 
@@ -211,7 +226,9 @@ def test_status_json_shape_with_unknown_profile(tmp_path: Path, monkeypatch) -> 
     assert "Unknown profile" in result.stdout
 
 
-def test_status_json_omits_sensitive_fields_by_default(monkeypatch, tmp_path: Path) -> None:
+def test_status_json_omits_sensitive_fields_by_default(
+    monkeypatch, tmp_path: Path
+) -> None:
     profile = Profile(name="personal", codex_home=tmp_path / "profiles" / "personal")
     statuses = [
         ProfileStatus(
@@ -239,8 +256,10 @@ def test_status_json_omits_sensitive_fields_by_default(monkeypatch, tmp_path: Pa
         )
     ]
 
-    monkeypatch.setattr("codex_quota.cli.collect_statuses", lambda *_args, **_kwargs: statuses)
-    monkeypatch.setattr("codex_quota.cli._config", lambda: object())
+    monkeypatch.setattr(
+        "codex_quota.cli.collect_statuses", lambda *_args, **_kwargs: statuses
+    )
+    monkeypatch.setattr("codex_quota.cli._config", object)
 
     result = runner.invoke(app, ["status", "--json"])
 
@@ -249,6 +268,7 @@ def test_status_json_omits_sensitive_fields_by_default(monkeypatch, tmp_path: Pa
     assert payload == [
         {
             "profile": "personal",
+            "status": None,
             "auth_ok": True,
             "codex_ok": True,
             "ok": True,
@@ -273,7 +293,9 @@ def test_status_json_omits_sensitive_fields_by_default(monkeypatch, tmp_path: Pa
     ]
 
 
-def test_status_json_can_include_paths_and_raw_payload(monkeypatch, tmp_path: Path) -> None:
+def test_status_json_can_include_paths_and_raw_payload(
+    monkeypatch, tmp_path: Path
+) -> None:
     profile = Profile(name="personal", codex_home=tmp_path / "profiles" / "personal")
     raw_limits = {"planType": "pro", "credits": {"total": 123}}
     statuses = [
@@ -292,14 +314,81 @@ def test_status_json_can_include_paths_and_raw_payload(monkeypatch, tmp_path: Pa
         )
     ]
 
-    monkeypatch.setattr("codex_quota.cli.collect_statuses", lambda *_args, **_kwargs: statuses)
-    monkeypatch.setattr("codex_quota.cli._config", lambda: object())
+    monkeypatch.setattr(
+        "codex_quota.cli.collect_statuses", lambda *_args, **_kwargs: statuses
+    )
+    monkeypatch.setattr("codex_quota.cli._config", object)
 
     result = runner.invoke(app, ["status", "--json", "--json-paths", "--json-raw"])
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
+    assert payload[0]["status"] is None
     assert payload[0]["path"] == str(profile.codex_home)
     assert payload[0]["rate_limits"]["plan_type"] == "pro"
     assert payload[0]["rate_limits"]["credits"] == {"total": 123}
     assert payload[0]["rate_limits"]["raw"] == raw_limits
+
+
+def test_status_json_includes_status_and_preserves_raw_error(
+    monkeypatch, tmp_path: Path
+) -> None:
+    profile = Profile(name="personal", codex_home=tmp_path / "profiles" / "personal")
+    raw_error = '{"code":401,"message":"401 Unauthorized"}'
+    statuses = [
+        ProfileStatus(
+            profile=profile,
+            rate_limits=None,
+            auth_ok=False,
+            codex_ok=True,
+            error=raw_error,
+            status="AUTH_REQUIRED",
+        )
+    ]
+
+    monkeypatch.setattr(
+        "codex_quota.cli.collect_statuses", lambda *_args, **_kwargs: statuses
+    )
+    monkeypatch.setattr("codex_quota.cli._config", object)
+
+    result = runner.invoke(app, ["status", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload == [
+        {
+            "profile": "personal",
+            "status": "AUTH_REQUIRED",
+            "auth_ok": False,
+            "codex_ok": True,
+            "ok": False,
+            "error": raw_error,
+            "rate_limits": None,
+        }
+    ]
+
+
+def test_status_human_output_shows_auth_required(monkeypatch, tmp_path: Path) -> None:
+    profile = Profile(name="personal", codex_home=tmp_path / "profiles" / "personal")
+    statuses = [
+        ProfileStatus(
+            profile=profile,
+            rate_limits=None,
+            auth_ok=False,
+            codex_ok=True,
+            error='{"code":401,"message":"token_invalidated"}',
+            status="AUTH_REQUIRED",
+        )
+    ]
+
+    monkeypatch.setattr(
+        "codex_quota.cli.collect_statuses", lambda *_args, **_kwargs: statuses
+    )
+    monkeypatch.setattr("codex_quota.cli._config", object)
+
+    result = runner.invoke(app, ["status"])
+
+    assert result.exit_code == 0
+    assert "AUTH_REQUIRE" in result.stdout
+    assert "D" in result.stdout
+    assert "token_invalidated" not in result.stdout

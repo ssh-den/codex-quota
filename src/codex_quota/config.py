@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
@@ -10,7 +12,15 @@ from .filesystem import ensure_private_dir
 from .models import AppConfig
 from .paths import default_paths
 
-CONFIG_KEYS = {"profiles_dir", "codex_bin", "default_model", "reasoning_effort", "refresh_seconds"}
+CONFIG_KEYS = {
+    "profiles_dir",
+    "codex_bin",
+    "default_model",
+    "reasoning_effort",
+    "refresh_seconds",
+}
+AUTH_REFRESH_KEY = "auth_refresh"
+AUTH_REFRESH_INTERVAL = timedelta(hours=4)
 
 
 def create_default_config() -> AppConfig:
@@ -69,6 +79,83 @@ def config_to_json(config: AppConfig, *, preserve_extra: bool = True) -> dict[st
         }
     )
     return data
+
+
+def auth_refresh_map(config: AppConfig) -> dict[str, str]:
+    value = config.extra.get(AUTH_REFRESH_KEY)
+    if not isinstance(value, dict):
+        return {}
+    return {
+        key: item
+        for key, item in value.items()
+        if isinstance(key, str) and isinstance(item, str)
+    }
+
+
+def parse_auth_refresh_timestamp(value: str) -> datetime | None:
+    if not value.endswith("Z"):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(UTC)
+
+
+def format_auth_refresh_timestamp(value: datetime) -> str:
+    return (
+        value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
+
+
+def get_last_auth_refresh(config: AppConfig, profile_name: str) -> datetime | None:
+    value = auth_refresh_map(config).get(profile_name)
+    if value is None:
+        return None
+    return parse_auth_refresh_timestamp(value)
+
+
+def auth_refresh_due(
+    config: AppConfig,
+    profile_name: str,
+    *,
+    now: datetime | None = None,
+    interval: timedelta = AUTH_REFRESH_INTERVAL,
+) -> bool:
+    current_time = now or datetime.now(UTC)
+    last_refresh = get_last_auth_refresh(config, profile_name)
+    if last_refresh is None:
+        return True
+    if last_refresh > current_time:
+        return True
+    return current_time - last_refresh >= interval
+
+
+def with_auth_refresh(
+    config: AppConfig,
+    profile_name: str,
+    refreshed_at: datetime,
+) -> AppConfig:
+    extra = dict(config.extra)
+    existing = extra.get(AUTH_REFRESH_KEY)
+    refresh_data = dict(existing) if isinstance(existing, dict) else {}
+    refresh_data[profile_name] = format_auth_refresh_timestamp(refreshed_at)
+    extra[AUTH_REFRESH_KEY] = refresh_data
+    return replace(config, extra=extra)
+
+
+def persist_auth_refresh(
+    config: AppConfig,
+    profile_name: str,
+    refreshed_at: datetime,
+    *,
+    path: Path | None = None,
+) -> AppConfig:
+    updated = with_auth_refresh(config, profile_name, refreshed_at)
+    save_config(updated, path=path)
+    return updated
 
 
 def save_config(

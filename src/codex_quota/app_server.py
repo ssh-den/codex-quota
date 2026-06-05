@@ -9,7 +9,7 @@ from . import __version__
 from .codex import codex_env, find_codex
 from .errors import AppServerError
 from .filesystem import ensure_private_dir
-from .models import Profile, RateLimits, WindowLimit
+from .models import AccountInfo, Profile, RateLimits, WindowLimit
 
 
 def _window(data: object) -> WindowLimit | None:
@@ -24,7 +24,9 @@ def _window(data: object) -> WindowLimit | None:
 
 
 def decode_rate_limits(payload: dict[str, Any]) -> RateLimits:
-    rate_limits = payload.get("rateLimits") or payload.get("result", {}).get("rateLimits")
+    rate_limits = payload.get("rateLimits") or payload.get("result", {}).get(
+        "rateLimits"
+    )
     if not isinstance(rate_limits, dict):
         raise AppServerError(f"Unexpected rate limit response: {payload}")
 
@@ -36,6 +38,17 @@ def decode_rate_limits(payload: dict[str, Any]) -> RateLimits:
         rate_limit_reached_type=rate_limits.get("rateLimitReachedType"),
         credits=credits_data if isinstance(credits_data, dict) else {},
         raw=rate_limits,
+    )
+
+
+def decode_account(payload: dict[str, Any]) -> AccountInfo:
+    account = payload.get("account")
+    if account is not None and not isinstance(account, dict):
+        raise AppServerError(f"Unexpected account response: {payload}")
+    return AccountInfo(
+        account=account,
+        requires_openai_auth=bool(payload.get("requiresOpenaiAuth")),
+        raw=payload,
     )
 
 
@@ -51,7 +64,13 @@ class AppServerClient:
         self.codex_bin = codex_bin
         self.timeout = timeout
 
-    def read_rate_limits(self) -> RateLimits:
+    def request(  # pylint: disable=too-many-locals
+        self,
+        method: str,
+        params: dict[str, Any],
+        *,
+        timeout_message: str,
+    ) -> dict[str, Any]:
         binary = find_codex(self.codex_bin)
         ensure_private_dir(self.profile.codex_home, parents=True, exist_ok=True)
         with subprocess.Popen(
@@ -73,11 +92,12 @@ class AppServerClient:
                 stdin.flush()
 
             try:
-                request_id = 1
+                initialize_id = 1
+                request_id = 2
                 send(
                     {
                         "jsonrpc": "2.0",
-                        "id": request_id,
+                        "id": initialize_id,
                         "method": "initialize",
                         "params": {
                             "clientInfo": {
@@ -113,18 +133,17 @@ class AppServerClient:
                         continue
 
                     if msg.get("error"):
-                        raise AppServerError(json.dumps(msg["error"]))
+                        raise AppServerError(line)
 
-                    if msg.get("id") == 1 and not initialized:
+                    if msg.get("id") == initialize_id and not initialized:
                         initialized = True
                         send({"jsonrpc": "2.0", "method": "initialized", "params": {}})
-                        request_id = 2
                         send(
                             {
                                 "jsonrpc": "2.0",
                                 "id": request_id,
-                                "method": "account/rateLimits/read",
-                                "params": {},
+                                "method": method,
+                                "params": params,
                             }
                         )
                         continue
@@ -133,9 +152,9 @@ class AppServerClient:
                         result = msg.get("result")
                         if not isinstance(result, dict):
                             raise AppServerError(f"Malformed JSON-RPC response: {msg}")
-                        return decode_rate_limits(result)
+                        return result
 
-                raise AppServerError("Timed out waiting for Codex app-server rate limits")
+                raise AppServerError(timeout_message)
             finally:
                 proc.terminate()
                 try:
@@ -143,10 +162,40 @@ class AppServerClient:
                 except subprocess.TimeoutExpired:
                     proc.kill()
 
+    def read_rate_limits(self) -> RateLimits:
+        result = self.request(
+            "account/rateLimits/read",
+            {},
+            timeout_message="Timed out waiting for Codex app-server rate limits",
+        )
+        return decode_rate_limits(result)
+
+    def read_account(self, *, refresh_token: bool = False) -> AccountInfo:
+        result = self.request(
+            "account/read",
+            {"refreshToken": refresh_token},
+            timeout_message="Timed out waiting for Codex app-server account",
+        )
+        return decode_account(result)
+
 
 def read_rate_limits(
     profile: Profile,
     codex_bin: str = "codex",
     timeout: float = 30.0,
 ) -> RateLimits:
-    return AppServerClient(profile, codex_bin=codex_bin, timeout=timeout).read_rate_limits()
+    return AppServerClient(
+        profile, codex_bin=codex_bin, timeout=timeout
+    ).read_rate_limits()
+
+
+def read_account(
+    profile: Profile,
+    codex_bin: str = "codex",
+    timeout: float = 30.0,
+    *,
+    refresh_token: bool = False,
+) -> AccountInfo:
+    return AppServerClient(profile, codex_bin=codex_bin, timeout=timeout).read_account(
+        refresh_token=refresh_token
+    )

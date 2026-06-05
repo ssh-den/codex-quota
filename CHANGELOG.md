@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.1.0 - 2026-06-05
+
+### Added
+
+- Opportunistic auth keepalive during `status`, `check`, and TUI refreshes using the official Codex App Server `account/read` call with `refreshToken=true`.
+- Persistent per-profile `auth_refresh` timestamps in application config using UTC ISO-8601 `Z` timestamps.
+- Additive `status` field in machine-readable status output for explicit classifications such as `AUTH_REQUIRED`.
+
+### Changed
+
+- Status collection now follows `login_status()`, best-effort auth refresh, and `account/rateLimits/read` without requiring a separate maintenance command.
+- App Server access now uses a reusable JSON-RPC request path while preserving the existing initialize and initialized handshake.
+
+### Fixed
+
+- Auth failures such as invalidated or missing managed tokens are now classified as `AUTH_REQUIRED` without dumping backend JSON into human-readable tables.
+- Non-auth refresh failures no longer block quota reads when `account/rateLimits/read` still succeeds.
+- Future or malformed `auth_refresh` timestamps are treated as stale so keepalive refresh resumes immediately instead of being skipped indefinitely.
+- Raw JSON-RPC error responses from `codex app-server --stdio` are now preserved exactly as returned for JSON and internal error handling.
+
 ## 1.0.0 - 2026-06-04
 
 ### Added

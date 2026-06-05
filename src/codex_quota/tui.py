@@ -130,14 +130,18 @@ class CodexUsageTui(App[None]):
             raise TuiCommandError("Usage: login <profile> [--device-auth]")
         profile = _profile_for_tui(self.config, parts[1])
         device_auth = len(parts) == 3
-        self._set_message("Running official Codex login...", title=f"login {profile.name}")
+        self._set_message(
+            "Running official Codex login...", title=f"login {profile.name}"
+        )
         rc = await asyncio.to_thread(
             codex_login,
             profile,
             self.config.codex_bin,
             device_auth=device_auth,
         )
-        self._set_message(f"codex login exited with code {rc}.", title=f"login {profile.name}")
+        self._set_message(
+            f"codex login exited with code {rc}.", title=f"login {profile.name}"
+        )
         self._schedule_refresh(clear_message=False)
 
     async def _run_exec(self, parts: list[str]) -> None:
@@ -147,7 +151,9 @@ class CodexUsageTui(App[None]):
         prompt = " ".join(parts[2:])
         self._set_message("Running codex exec...", title=f"exec {profile.name}")
         proc = await asyncio.to_thread(simple_exec, profile, prompt, self.config)
-        output = proc.stdout or proc.stderr or f"Process exited with code {proc.returncode}."
+        output = (
+            proc.stdout or proc.stderr or f"Process exited with code {proc.returncode}."
+        )
         self._set_message(output, title=f"exec {profile.name}")
 
     def _schedule_auto_refresh(self) -> None:
@@ -185,9 +191,15 @@ class CodexUsageTui(App[None]):
     def _render(self) -> None:
         status = self.query_one("#status", Static)
         message = self.query_one("#message", Static)
-        status.update(render_status_view(self.state.statuses, refreshed_at=self.state.refreshed_at))
+        status.update(
+            render_status_view(
+                self.state.statuses, refreshed_at=self.state.refreshed_at
+            )
+        )
         if self.state.message:
-            message.update(render_message(self.state.message, title=self.state.message_title))
+            message.update(
+                render_message(self.state.message, title=self.state.message_title)
+            )
         elif self.state.refresh_pending:
             message.update("refreshing...")
         else:

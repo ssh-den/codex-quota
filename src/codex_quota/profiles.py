@@ -76,7 +76,9 @@ def get_profile(config: AppConfig, name: str) -> Profile:
     path = profile_path(config, name)
 
     if not path.is_dir():
-        known = ", ".join(profile.name for profile in discover_profiles(config)) or "<none>"
+        known = (
+            ", ".join(profile.name for profile in discover_profiles(config)) or "<none>"
+        )
         raise ProfileNotFoundError(f"Unknown profile: {name}. Known: {known}")
 
     return Profile(name=name, codex_home=path)

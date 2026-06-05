@@ -45,6 +45,13 @@ class AppConfig:
 
 
 @dataclass(frozen=True)
+class AccountInfo:
+    account: dict[str, Any] | None
+    requires_openai_auth: bool
+    raw: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class WindowLimit:
     used_percent: int
     window_duration_mins: int
@@ -77,11 +84,13 @@ class ProfileStatus:
     auth_ok: bool = False
     codex_ok: bool = True
     error: str | None = None
+    status: str | None = None
 
     @property
     def ok(self) -> bool:
         return (
-            self.error is None
+            self.status != "AUTH_REQUIRED"
+            and self.error is None
             and self.codex_ok
             and self.auth_ok
             and self.rate_limits is not None

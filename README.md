@@ -107,6 +107,8 @@ Default configuration:
 
 Edit `~/.config/codex-quota/config.json` to change model defaults or reasoning effort.
 
+On successful status-time auth keepalive, `codex-quota` also stores a per-profile `auth_refresh` map in this same config file using UTC ISO-8601 timestamps ending in `Z`. This state is created lazily, preserves unknown config keys, and never inspects or modifies `auth.json`.
+
 ---
 
 ## Initialization
@@ -239,12 +241,18 @@ JSON output:
 codex-quota status --json
 ```
 
+Status collection opportunistically performs an auth keepalive through the official Codex App Server before reading rate limits. When the last successful refresh for a profile is 4 hours old or older, `codex-quota` calls `account/read` with `refreshToken=true`. This refresh is best-effort:
+
+- Auth-related failures are classified as `AUTH_REQUIRED`
+- Transient refresh failures do not block a later successful rate-limit read
+- No separate maintenance command is required for normal operation
+
 Example human-readable output:
 
 ```
 Profile   Status   5h Left   Week Left
 personal  OK       99%       69%
-work      OK       74%       52%
+work      AUTH_REQUIRED
 ```
 
 Default JSON is safe for CI logs and automation:
@@ -252,6 +260,12 @@ Default JSON is safe for CI logs and automation:
 - No absolute profile paths
 - No raw `rateLimits` payload
 - No plan or credits metadata unless explicitly requested
+
+Machine-readable status output includes these stable top-level fields per profile:
+
+- `status` for explicit classifications such as `AUTH_REQUIRED`
+- `error` for the raw internal/backend error string when present
+- `rate_limits` for normalized quota data
 
 Opt in to the extra fields only when you need them:
 
@@ -344,10 +358,11 @@ Then performs the following JSON-RPC sequence:
 ```
 1. initialize
 2. initialized
-3. account/rateLimits/read
+3. account/read {"refreshToken": true} when auth refresh is due
+4. account/rateLimits/read
 ```
 
-Responses are normalized for display and safe JSON output. Raw API values are available only through explicit `--json-raw`.
+Responses are normalized for display and safe JSON output. Human-readable tables show `AUTH_REQUIRED` for auth failures instead of large backend payloads. Raw `rateLimits` values are available only through explicit `--json-raw`, while raw backend error strings remain available in JSON output.
 
 ## License
 

@@ -24,7 +24,14 @@ def fmt_refreshed_at(value: datetime | None) -> str:
     return f"Refreshed at {value.strftime('%H:%M %d.%m.%Y')}"
 
 
-def status_text(limits: RateLimits | None, auth_ok: bool, error: str | None = None) -> str:
+def status_text(
+    limits: RateLimits | None,
+    auth_ok: bool,
+    error: str | None = None,
+    status: str | None = None,
+) -> str:
+    if status:
+        return status
     if error and error != "auth_required":
         return f"error: {error}"
     if not auth_ok:
@@ -43,7 +50,7 @@ def _percent(value: int | float | None) -> str:
 def _status_style(text: str) -> str:
     if text == "available":
         return "green"
-    if text == "auth_required":
+    if text in {"auth_required", "AUTH_REQUIRED"}:
         return "yellow"
     if text.startswith("error:") or text not in {"unknown", "available"}:
         return "red"
@@ -80,7 +87,7 @@ def render_status_table(statuses: list[ProfileStatus]) -> Table:
         limits = item.rate_limits
         primary = limits.primary if limits else None
         secondary = limits.secondary if limits else None
-        current_status = status_text(limits, item.auth_ok, item.error)
+        current_status = status_text(limits, item.auth_ok, item.error, item.status)
         table.add_row(
             item.profile.name,
             _percent(primary.remaining_percent if primary else None),
